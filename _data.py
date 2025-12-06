@@ -2,6 +2,7 @@ from pathlib import Path
 from tempfile import gettempdir
 import numpy as np
 from skimage import io, color, transform, feature
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from tqdm import tqdm
@@ -133,7 +134,7 @@ def load_brain_tumor_1d(
 
     # Load the combined dataset to determine actual split
     src_file = np.load(PATH_BRAIN_TUMOR_1D)
-    
+
     # Calculate train size dynamically from the saved data
     # We need to count how many samples were in training vs testing
     # This is done by loading the 2D file which has the split info
@@ -143,7 +144,7 @@ def load_brain_tumor_1d(
         data_2d = data_2d.item()
     TRAIN_SIZE = len(data_2d[0]["label"])
 
-    # Reuse Previously Computed Dataset
+    # Reuse Previously Computed Dataset (skip caching when sampling) // and sample_fraction == 1.0
     if Path(temp_filepath).is_file():
         return np.split(np.load(temp_filepath), [TRAIN_SIZE])
 
@@ -211,5 +212,39 @@ def load_brain_tumor_1d(
     np.save(temp_filepath, target_dataset)
     return np.split(target_dataset, [TRAIN_SIZE])
 
+PARAMETER_PERMUTATION_1D = [
+  [True, True, True, "none"],
+  [False, True, True, "none"],
+  [True, False, True, "none"],
+  [True, True, False, "none"],
+  [False, False, True, "none"],
+  [False, True, False, "none"],
+  [True, False, False, "none"],
+  [True, True, True, "local"],
+  [False, True, True, "local"],
+  [True, False, True, "local"],
+  [True, True, False, "local"],
+  [False, False, True, "local"],
+  [True, False, False, "local"],
+  [False, True, False, "local"],
+  [False, True, True, "global"],
+  [False, False, True, "global"],
+  [False, True, False, "global"],
+  [False, False, False, "global"],
+]
+
+def load_brain_tumor_2d():
+    train, test = np.load(PATH_BRAIN_TUMOR_2D, allow_pickle=True)
+    return train, test
+
 pre_import_hook()
 
+
+# import os
+# from tempfile import gettempdir
+
+# TEMP_FOLDER = f"{gettempdir()}/brain-tumor-detection/"
+# # Delete all cached files
+# for f in Path(TEMP_FOLDER).glob("*.npy"):
+#     os.remove(f)
+#     print(f"Deleted: {f}")
